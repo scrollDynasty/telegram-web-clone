@@ -33,6 +33,16 @@ describe('GreenApiClient', () => {
     await expect(client.receiveNotification(5)).resolves.toBeNull()
   })
 
+  it('treats 408 on receiveNotification (Telegram empty long poll) as an empty queue', async () => {
+    const client = new GreenApiClient(credentials, mockFetch(408, 'Request Timeout'))
+    await expect(client.receiveNotification(20)).resolves.toBeNull()
+  })
+
+  it('still reports 408 from other methods', async () => {
+    const client = new GreenApiClient(credentials, mockFetch(408, 'Request Timeout'))
+    await expect(client.sendMessage('1', 'x')).rejects.toMatchObject({ status: 408 })
+  })
+
   it('passes receiveTimeout and deletes by receiptId', async () => {
     const fetchMock = mockFetch(200, { receiptId: 7, body: { typeWebhook: 'x' } })
     const client = new GreenApiClient(credentials, fetchMock)

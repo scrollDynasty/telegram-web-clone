@@ -42,3 +42,19 @@ export type ReceivedNotification = NonNullable<z.infer<typeof receiveNotificatio
 export const deleteNotificationResponseSchema = z.looseObject({
   result: z.boolean(),
 })
+
+const yesNo = z.string().optional().catch(undefined)
+
+/** The subset of GetSettings the chat depends on. */
+export const instanceSettingsSchema = z.looseObject({
+  webhookUrl: z.string().optional().catch(undefined),
+  incomingWebhook: yesNo,
+  outgoingWebhook: yesNo,
+  outgoingMessageWebhook: yesNo,
+  outgoingAPIMessageWebhook: yesNo,
+})
+export type InstanceSettings = z.infer<typeof instanceSettingsSchema>
+
+export const setSettingsResponseSchema = z.looseObject({
+  saveSettings: z.boolean(),
+})

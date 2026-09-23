@@ -4,9 +4,12 @@ import {
   accountSettingsSchema,
   checkAccountResponseSchema,
   deleteNotificationResponseSchema,
+  instanceSettingsSchema,
   receiveNotificationResponseSchema,
   sendMessageResponseSchema,
+  setSettingsResponseSchema,
   type AccountSettings,
+  type InstanceSettings,
   type ReceivedNotification,
 } from './schemas'
 
@@ -121,15 +124,38 @@ export class GreenApiClient {
   }
 
   /** Long-polls the notification queue. Resolves with `null` when the queue stayed empty. */
-  receiveNotification(
+  async receiveNotification(
     receiveTimeoutSec: number,
     signal?: AbortSignal,
   ): Promise<ReceivedNotification | null> {
-    return this.request('receiveNotification', receiveNotificationResponseSchema, {
-      query: { receiveTimeout: receiveTimeoutSec },
+    try {
+      return await this.request('receiveNotification', receiveNotificationResponseSchema, {
+        query: { receiveTimeout: receiveTimeoutSec },
+        signal,
+        timeoutMs: (receiveTimeoutSec + 10) * 1000,
+      })
+    } catch (error) {
+      // Telegram instances answer an empty long poll with 408 Request Timeout instead of `null`.
+      if (error instanceof GreenApiError && error.status === 408) return null
+      throw error
+    }
+  }
+
+  getSettings(signal?: AbortSignal): Promise<InstanceSettings> {
+    return this.request('getSettings', instanceSettingsSchema, { signal })
+  }
+
+  /** Changes instance settings. GREEN-API restarts the instance and applies them within ~5 min. */
+  async setSettings(
+    settings: Partial<Record<keyof InstanceSettings, string>>,
+    signal?: AbortSignal,
+  ) {
+    const { saveSettings } = await this.request('setSettings', setSettingsResponseSchema, {
+      method: 'POST',
+      body: settings,
       signal,
-      timeoutMs: (receiveTimeoutSec + 10) * 1000,
     })
+    return saveSettings
   }
 
   async deleteNotification(receiptId: number, signal?: AbortSignal): Promise<boolean> {

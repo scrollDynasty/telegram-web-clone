@@ -4,6 +4,7 @@ import { useDeferredValue, useMemo, useRef, useState } from 'react'
 import { useChatStore } from '@/entities/chat/context'
 import { chatTitle } from '@/entities/chat/model'
 import { useSessionStore } from '@/entities/session/store'
+import { NotificationSettingsCard } from '@/features/instance-settings/NotificationSettingsCard'
 import { NewChatDialog } from '@/features/new-chat/NewChatDialog'
 import type { ConnectionStatus } from '@/features/polling/pollingLoop'
 import type { ConnectionState } from '@/features/polling/useNotificationPolling'
@@ -161,6 +162,8 @@ export function Sidebar({ connection }: { connection: ConnectionState }) {
           </button>
         )}
       </header>
+
+      <NotificationSettingsCard />
 
       <nav className={styles.list} aria-label="Список чатов">
         {sortedChats.length === 0 ? (
