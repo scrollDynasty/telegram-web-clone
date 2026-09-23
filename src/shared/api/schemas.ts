@@ -58,3 +58,7 @@ export type InstanceSettings = z.infer<typeof instanceSettingsSchema>
 export const setSettingsResponseSchema = z.looseObject({
   saveSettings: z.boolean(),
 })
+
+export const readChatResponseSchema = z.looseObject({
+  setRead: z.boolean(),
+})

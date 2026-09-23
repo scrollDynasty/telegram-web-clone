@@ -45,6 +45,11 @@ const messageDataSchema = z.discriminatedUnion('typeMessage', [
     typeMessage: z.literal('extendedTextMessage'),
     extendedTextMessageData: z.looseObject({ text: z.string() }),
   }),
+  // A reply that quotes another message: the text itself is in extendedTextMessageData.
+  z.looseObject({
+    typeMessage: z.literal('quotedMessage'),
+    extendedTextMessageData: z.looseObject({ text: z.string() }),
+  }),
   z.looseObject({
     typeMessage: z.enum(Object.keys(MEDIA_LABELS) as [MediaType, ...MediaType[]]),
     fileMessageData: z
@@ -108,7 +113,10 @@ export function parseNotification(body: unknown): ChatEvent | null {
   let media: string | undefined
   if (messageData.typeMessage === 'textMessage') {
     text = messageData.textMessageData.textMessage
-  } else if (messageData.typeMessage === 'extendedTextMessage') {
+  } else if (
+    messageData.typeMessage === 'extendedTextMessage' ||
+    messageData.typeMessage === 'quotedMessage'
+  ) {
     text = messageData.extendedTextMessageData.text
   } else {
     media = MEDIA_LABELS[messageData.typeMessage]

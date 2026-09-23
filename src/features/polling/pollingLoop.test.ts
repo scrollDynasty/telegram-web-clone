@@ -176,8 +176,48 @@ describe('runPollingLoop probe', () => {
     })
 
     await vi.waitFor(() => expect(probe).toHaveBeenCalled())
-    await Promise.resolve()
+    await new Promise((resolve) => setTimeout(resolve, 0))
     expect(statuses).toEqual(['connecting'])
+    release()
+    await loop
+  })
+
+  /** First poll fails with `error`, the next one hangs (an empty queue) until released. */
+  function failThenHang(error: GreenApiError, controller: AbortController) {
+    const hanging = hangingClient(controller)
+    let first = true
+    hanging.client.receiveNotification.mockImplementationOnce(async () => {
+      first = false
+      throw error
+    })
+    return { ...hanging, isFirstDone: () => !first }
+  }
+
+  it.each([
+    ['network', true],
+    ['timeout', true],
+    // The queue itself fails while the account endpoint works: the probe proves nothing.
+    ['server', false],
+    ['rate_limit', false],
+  ] as const)('after a %s failure, a good probe brings it online: %s', async (kind, online) => {
+    const controller = new AbortController()
+    const { client, release } = failThenHang(new GreenApiError(kind, kind), controller)
+    const statuses: ConnectionStatus[] = []
+    const probe = vi.fn<(signal: AbortSignal) => Promise<boolean>>(async () => true)
+    // The first probe (while connecting) finds nothing: only the probe after the failure counts.
+    probe.mockImplementationOnce(async () => false)
+    const loop = runPollingLoop({
+      client,
+      signal: controller.signal,
+      onNotification: () => {},
+      onStatusChange: (s) => statuses.push(s),
+      probe,
+      sleep: async () => {},
+    })
+
+    await vi.waitFor(() => expect(client.receiveNotification).toHaveBeenCalledTimes(2))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(statuses.at(-1)).toBe(online ? 'online' : 'offline')
     release()
     await loop
   })

@@ -2,6 +2,7 @@ import { ArrowLeft, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useChatStore } from '@/entities/chat/context'
 import { chatTitle } from '@/entities/chat/model'
+import { useMarkChatRead } from '@/features/mark-read/useMarkChatRead'
 import { useSendMessage } from '@/features/send-message/useSendMessage'
 import { isCoarsePointer } from '@/shared/lib/focus'
 import { formatPhone } from '@/shared/lib/phone'
@@ -34,6 +35,10 @@ export function ChatView({ chatId }: { chatId: string }) {
   const deleteChat = useChatStore((s) => s.deleteChat)
   const { send, retry } = useSendMessage(chatId)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const lastIncomingId = useChatStore(
+    (s) => s.chats[chatId]?.messages.findLast((m) => m.direction === 'in')?.id,
+  )
+  useMarkChatRead(chatId, lastIncomingId)
 
   if (!chat) return null
 

@@ -94,12 +94,22 @@ describe('chat store', () => {
         incomingEvent({ idMessage: 'srv-1', direction: 'out', text: 'hi', timestamp: 60_000 }),
       )
       expect(state().clockOffsetMs).toBe(39_500)
+      // Our message moves to the server's time for it (what the peer's phone shows).
+      expect(state().chats[CHAT]!.messages[0]).toMatchObject({ id: 'srv-1', timestamp: 60_000 })
 
-      // A reply sent 1 s after our message lands after it, at local-clock time.
+      // A reply sent 1 s after our message lands after it, in server time.
       state().applyEvent(incomingEvent({ idMessage: 'reply', timestamp: 61_000 }))
       const messages = state().chats[CHAT]!.messages
       expect(messages.map((m) => m.id)).toEqual(['srv-1', 'reply'])
-      expect(messages[1]!.timestamp).toBe(100_500)
+      expect(messages[1]!.timestamp).toBe(61_000)
+
+      // The next message is stamped in server time right away.
+      tick(10_000)
+      state().addOutgoing(CHAT, 'local-2', 'again')
+      expect(state().chats[CHAT]!.messages.at(-1)).toMatchObject({
+        timestamp: 111_000 - 39_500,
+        sentAt: 111_000,
+      })
     })
 
     it('learns it when the echo adopts the pending copy', () => {
@@ -108,6 +118,26 @@ describe('chat store', () => {
         incomingEvent({ idMessage: 'srv-1', direction: 'out', text: 'hi', timestamp: 60_000 }),
       )
       expect(state().clockOffsetMs).toBe(39_500)
+      expect(state().chats[CHAT]!.messages).toEqual([
+        expect.objectContaining({ id: 'srv-1', localId: 'local-1', timestamp: 60_000 }),
+      ])
+    })
+
+    it('appends a new own message even if its converted time is older than the last one', () => {
+      const { state } = withOwnMessage()
+      state().resolveOutgoing(CHAT, 'local-1', 'srv-1')
+      // A reply stamped (server time) later than our next message's converted time.
+      state().applyEvent(incomingEvent({ idMessage: 'reply', timestamp: 200_000 }))
+      state().addOutgoing(CHAT, 'local-2', 'answer')
+      expect(state().chats[CHAT]!.messages.map((m) => m.id)).toEqual(['srv-1', 'reply', 'local-2'])
+    })
+
+    it('a retry is a new send: it gets a fresh sentAt for the clock offset', () => {
+      const { state, tick } = withOwnMessage()
+      state().failOutgoing(CHAT, 'local-1', 'network')
+      tick(30_000)
+      state().retryOutgoing(CHAT, 'local-1')
+      expect(state().chats[CHAT]!.messages[0]!.sentAt).toBe(130_000)
     })
 
     it('ignores the echo of an old message (not a clock reference)', () => {
@@ -351,6 +381,21 @@ describe('chat store', () => {
       // The chat is open here: nothing is unread in this tab.
       expect(chat.unread).toBe(0)
       expect(state().chats.other).toBeDefined()
+    })
+
+    it("takes the other tab's clock offset, so the tabs do not overwrite each other forever", () => {
+      const { store, state } = setup()
+      const stop = syncWithOtherTabs(store, 'test')
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'gac:chats:test',
+          newValue: JSON.stringify({ state: { chats: {}, clockOffsetMs: 42_000 }, version: 1 }),
+        }),
+      )
+      stop()
+      expect(state().clockOffsetMs).toBe(42_000)
+      // What this tab writes back is now identical in the offset: no new storage event loop.
+      expect(JSON.parse(localStorage.getItem('gac:chats:test')!).state.clockOffsetMs).toBe(42_000)
     })
 
     it('closes the open chat if another tab deleted it and ignores other keys', () => {

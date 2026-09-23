@@ -67,6 +67,11 @@ export async function runPollingLoop({
   random = Math.random,
 }: PollingLoopOptions): Promise<void> {
   let probing = false
+  // Bumped on every failed poll: a probe that started before a failure must not undo it.
+  let failureSeq = 0
+  // Only a lost connection (network, timeout) can be ruled out by a successful probe. A 429 or
+  // 5xx from the queue itself says nothing about getAccountSettings, and vice versa.
+  let connectivityLost = false
   let failures = 0
   let status: ConnectionStatus = 'connecting'
   let lastMessage: string | undefined
@@ -80,13 +85,16 @@ export async function runPollingLoop({
   onStatusChange?.(status)
 
   while (!signal.aborted) {
-    // Not after `unavailable`: the instance answers but refuses the queue, a probe would flap it.
-    if (probe && !probing && (status === 'connecting' || status === 'offline')) {
+    // Not after `unavailable` or a server-side failure: the instance answers but the queue does
+    // not work, a successful probe would make the status flap.
+    const canProbe = status === 'connecting' || (status === 'offline' && connectivityLost)
+    if (probe && !probing && canProbe) {
       probing = true
+      const seq = failureSeq
       probe(signal)
         .then(
           (ok) => {
-            if (ok && !signal.aborted && (status === 'connecting' || status === 'offline')) {
+            if (ok && !signal.aborted && seq === failureSeq && status !== 'unavailable') {
               setStatus('online')
             }
           },
@@ -101,6 +109,7 @@ export async function runPollingLoop({
     try {
       const notification = await client.receiveNotification(receiveTimeoutSec, signal)
       failures = 0
+      connectivityLost = false
       setStatus('online')
       if (!notification) continue
 
@@ -118,6 +127,9 @@ export async function runPollingLoop({
         return
       }
       failures += 1
+      failureSeq += 1
+      connectivityLost =
+        error instanceof GreenApiError && (error.kind === 'network' || error.kind === 'timeout')
       // 400 on a parameterless long poll is about the instance itself, not the network. Keep
       // retrying (the user may fix it in the GREEN-API console), but say what is wrong.
       if (error instanceof GreenApiError && error.kind === 'bad_request') {

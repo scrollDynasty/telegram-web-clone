@@ -5,6 +5,7 @@ import {
   checkAccountResponseSchema,
   deleteNotificationResponseSchema,
   instanceSettingsSchema,
+  readChatResponseSchema,
   receiveNotificationResponseSchema,
   sendMessageResponseSchema,
   setSettingsResponseSchema,
@@ -139,6 +140,16 @@ export class GreenApiClient {
       if (error instanceof GreenApiError && error.status === 408) return null
       throw error
     }
+  }
+
+  /** Marks the chat's incoming messages as read: the peer's ticks turn into ✓✓. */
+  async readChat(chatId: string, signal?: AbortSignal): Promise<boolean> {
+    const { setRead } = await this.request('readChat', readChatResponseSchema, {
+      method: 'POST',
+      body: { chatId },
+      signal,
+    })
+    return setRead
   }
 
   getSettings(signal?: AbortSignal): Promise<InstanceSettings> {

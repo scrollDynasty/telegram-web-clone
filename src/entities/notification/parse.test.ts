@@ -38,6 +38,18 @@ describe('parseNotification', () => {
     })
   })
 
+  it('reads the text of a reply that quotes another message', () => {
+    expect(
+      parseNotification(
+        incoming({
+          typeMessage: 'quotedMessage',
+          extendedTextMessageData: { text: 'Неа', stanzaId: '1769676078000' },
+          quotedMessage: { typeMessage: 'textMessage', textMessage: 'ты видишь?' },
+        }),
+      ),
+    ).toMatchObject({ type: 'message', direction: 'in', text: 'Неа' })
+  })
+
   it('turns a photo into a placeholder message, keeping its caption', () => {
     expect(
       parseNotification(

@@ -11,8 +11,10 @@ export interface Message {
   text: string
   /** Placeholder for a non-text message (e.g. "📷 Фото"); `text` then holds its caption, if any. */
   media?: string
-  /** Unix time in milliseconds. */
+  /** Unix time in milliseconds, server clock. */
   timestamp: number
+  /** Own messages: local clock at send time, the reference for the local−server offset. */
+  sentAt?: number
   /** Meaningful for outgoing messages only. */
   status: MessageStatus
   error?: string

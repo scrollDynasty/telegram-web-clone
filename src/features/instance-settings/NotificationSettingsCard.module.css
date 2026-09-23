@@ -33,6 +33,7 @@
 
 .title {
   margin: 0;
+  outline: none;
   color: var(--text);
   font-size: 15px;
   font-weight: var(--font-weight-medium);
@@ -41,7 +42,8 @@
 
 .text {
   margin: 0;
-  color: var(--text-secondary);
+  /* --text-secondary on --surface-hover is below AA 4.5:1 in the light theme. */
+  color: var(--text);
   font-size: 14px;
   line-height: 19px;
 }

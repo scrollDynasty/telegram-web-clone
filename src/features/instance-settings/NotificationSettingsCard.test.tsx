@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { GreenApiClientProvider } from '@/shared/api/client-context'
 import { GreenApiClient } from '@/shared/api/greenApi'
+import type { InstanceSettings } from '@/shared/api/schemas'
 import { NotificationSettingsCard } from './NotificationSettingsCard'
 import { evaluateSettings, REQUIRED_SETTINGS } from './useNotificationSettings'
 
@@ -41,42 +42,75 @@ describe('evaluateSettings', () => {
 })
 
 describe('NotificationSettingsCard', () => {
-  function renderWith(fetchMock: typeof fetch) {
-    vi.spyOn(GreenApiClient.prototype, 'getSettings')
-    const client = new GreenApiClient(credentials, fetchMock)
-    vi.spyOn(globalThis, 'fetch').mockImplementation(fetchMock)
+  function renderCard({
+    settings,
+    setSettings = async () => true,
+  }: {
+    settings: () => Promise<InstanceSettings>
+    setSettings?: () => Promise<boolean>
+  }) {
+    const getSpy = vi.spyOn(GreenApiClient.prototype, 'getSettings').mockImplementation(settings)
+    const setSpy = vi.spyOn(GreenApiClient.prototype, 'setSettings').mockImplementation(setSettings)
     render(
       <GreenApiClientProvider credentials={credentials}>
+        <input type="search" aria-label="Поиск по чатам" />
         <NotificationSettingsCard />
       </GreenApiClientProvider>,
     )
-    return client
+    return { getSpy, setSpy, user: userEvent.setup() }
   }
 
   afterEach(() => vi.restoreAllMocks())
 
-  it('offers to switch notifications on and sends the required settings', async () => {
-    const fetchMock = vi.fn<typeof fetch>(async (url) =>
-      String(url).includes('/getSettings/')
-        ? new Response(JSON.stringify({ ...ALL_ON, incomingWebhook: 'no' }))
-        : new Response(JSON.stringify({ saveSettings: true })),
-    )
-    renderWith(fetchMock)
+  it('switches notifications on, announces it and keeps focus in the card', async () => {
+    const { setSpy, user } = renderCard({
+      settings: async () => ({ ...ALL_ON, incomingWebhook: 'no' }),
+    })
 
     const button = await screen.findByRole('button', { name: 'Включить' })
     expect(screen.getByText(/выключены уведомления о входящих/)).toBeInTheDocument()
+    await user.click(button)
 
-    await userEvent.setup().click(button)
+    expect(setSpy).toHaveBeenCalledWith(REQUIRED_SETTINGS)
+    const title = await screen.findByText('Уведомления включены')
+    expect(title).toHaveFocus()
+    expect(screen.getByText(/перезапустит инстанс/)).toHaveAttribute('aria-live', 'polite')
 
-    expect(await screen.findByText('Уведомления включены')).toBeInTheDocument()
-    const setCall = fetchMock.mock.calls.find(([url]) => String(url).includes('/setSettings/'))!
-    expect(JSON.parse(String(setCall[1]?.body))).toEqual(REQUIRED_SETTINGS)
+    await user.click(screen.getByRole('button', { name: 'Скрыть' }))
+    expect(screen.queryByText('Уведомления включены')).toBeNull()
+    expect(screen.getByRole('searchbox', { name: 'Поиск по чатам' })).toHaveFocus()
+  })
+
+  it('explains a webhook URL', async () => {
+    renderCard({ settings: async () => ({ ...ALL_ON, webhookUrl: 'https://example.com/hook' }) })
+    expect(await screen.findByText(/указан webhook URL/)).toBeInTheDocument()
+  })
+
+  it('shows the error and offers to retry when SetSettings fails', async () => {
+    const { user } = renderCard({
+      settings: async () => ({ ...ALL_ON, incomingWebhook: 'no' }),
+      setSettings: async () => false,
+    })
+    await user.click(await screen.findByRole('button', { name: 'Включить' }))
+    expect(await screen.findByText('GREEN-API не сохранил настройки')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Повторить' })).toBeInTheDocument()
   })
 
   it('stays hidden when the instance is already set up', async () => {
-    const fetchMock = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(ALL_ON)))
-    renderWith(fetchMock)
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+    const { getSpy } = renderCard({ settings: async () => ALL_ON })
+    await vi.waitFor(() => expect(getSpy).toHaveResolved())
+    expect(screen.queryByRole('region')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Включить' })).toBeNull()
+  })
+
+  it('stays hidden when the settings cannot be read', async () => {
+    const { getSpy } = renderCard({
+      settings: async () => {
+        throw new Error('network')
+      },
+    })
+    await vi.waitFor(() => expect(getSpy).toHaveBeenCalled())
+    await new Promise((resolve) => setTimeout(resolve, 0))
     expect(screen.queryByRole('button', { name: 'Включить' })).toBeNull()
   })
 })

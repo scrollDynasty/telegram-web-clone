@@ -1,0 +1,29 @@
+.icon {
+  display: block;
+  flex: none;
+}
+
+/* The tick is drawn along its path, like a pen stroke (pathLength=1 → dash of 1). */
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw-tick 260ms cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+/* clock → ✓✓ at once (both statuses in one update): the second tick follows the first. */
+.delayed {
+  animation-delay: 160ms;
+}
+
+@keyframes draw-tick {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

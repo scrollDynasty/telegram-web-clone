@@ -30,10 +30,10 @@ const ADOPT_FAILED_WINDOW_MS = 5 * 60 * 1000
 const MAX_BUFFERED_STATUSES = 50
 
 /**
- * Own messages are stamped with the local clock, notifications with the server's. When the PC
- * clock is off, a reply would be shown earlier than it was sent and even above the question.
- * Like Telegram's clients, we learn the local−server offset and shift server times by it. The
- * reference is the echo of our own just-sent message: its local send time is known exactly.
+ * Messages are shown in server time (what the peer's phone shows). Only our own new messages
+ * are stamped locally, so the PC clock is converted with a learned local−server offset; a wrong
+ * PC clock would otherwise put a reply above the question it answers. The reference is the echo
+ * of our own just-sent message: its local send time (`sentAt`) is known exactly.
  */
 const FRESH_ECHO_MS = 60_000
 
@@ -52,7 +52,7 @@ export interface ChatContactInput {
 export interface ChatState {
   chats: Record<string, Chat>
   activeChatId: string | null
-  /** Local clock minus server clock (ms), added to every server timestamp. */
+  /** Local clock minus server clock (ms); converts local send times to server time. */
   clockOffsetMs: number
 
   openChat: (chatId: string) => void
@@ -86,6 +86,11 @@ function insertMessage(messages: Message[], message: Message, live = false): Mes
     while (index > 0 && messages[index - 1]!.timestamp > message.timestamp) index--
   }
   const next = [...messages.slice(0, index), message, ...messages.slice(index)]
+  return next.length > MAX_MESSAGES_PER_CHAT ? next.slice(-MAX_MESSAGES_PER_CHAT) : next
+}
+
+function appendMessage(messages: Message[], message: Message): Message[] {
+  const next = [...messages, message]
   return next.length > MAX_MESSAGES_PER_CHAT ? next.slice(-MAX_MESSAGES_PER_CHAT) : next
 }
 
@@ -183,9 +188,32 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
 
         /** Offset learned from the server echo of our own recent message, or null. */
         const offsetFromEcho = (own: Message, serverTimestamp: number): number | null => {
-          if (own.direction !== 'out' || own.localId === undefined) return null
-          if (now() - own.timestamp > FRESH_ECHO_MS) return null
-          return own.timestamp - (serverTimestamp + SERVER_ROUNDING_MS)
+          if (own.direction !== 'out' || own.sentAt === undefined) return null
+          if (now() - own.sentAt > FRESH_ECHO_MS) return null
+          return own.sentAt - (serverTimestamp + SERVER_ROUNDING_MS)
+        }
+
+        /**
+         * Moves one message to the server's time for it. It keeps its place unless that breaks
+         * the order by more than rounding: the queue order is right, whole seconds are coarse.
+         */
+        const retime = (chat: Chat, id: string, timestamp: number): Chat => {
+          const index = chat.messages.findIndex((m) => m.id === id)
+          const message = chat.messages[index]
+          if (!message || message.timestamp === timestamp) return chat
+          const retimed = { ...message, timestamp }
+          const prev = chat.messages[index - 1]
+          const next = chat.messages[index + 1]
+          const inOrder =
+            (!prev || prev.timestamp <= timestamp + SERVER_CLOCK_TOLERANCE_MS) &&
+            (!next || next.timestamp >= timestamp - SERVER_CLOCK_TOLERANCE_MS)
+          const messages = inOrder
+            ? chat.messages.map((m, i) => (i === index ? retimed : m))
+            : insertMessage(
+                chat.messages.filter((_, i) => i !== index),
+                retimed,
+              )
+          return { ...chat, messages }
         }
 
         const updateChat = (chatId: string, fn: (chat: Chat) => Chat) =>
@@ -231,16 +259,20 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
             }),
 
           addOutgoing: (chatId, localId, text) => {
-            const timestamp = now()
+            const sentAt = now()
+            // Shown in server time, like every other message (the PC clock may be off).
+            const timestamp = sentAt - get().clockOffsetMs
             updateChat(chatId, (chat) => ({
               ...chat,
               lastActivityAt: timestamp,
-              messages: insertMessage(chat.messages, {
+              // A message just sent is the newest one, whatever the (converted) clock says.
+              messages: appendMessage(chat.messages, {
                 id: localId,
                 localId,
                 direction: 'out',
                 text,
                 timestamp,
+                sentAt,
                 status: 'pending',
               }),
             }))
@@ -267,8 +299,15 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
           retryOutgoing: (chatId, localId) => {
             const message = get().chats[chatId]?.messages.find((m) => m.id === localId)
             if (!message || message.status !== 'failed' || message.direction !== 'out') return null
+            // New attempt, new send time: the clock offset is learned from `sentAt`.
+            const sentAt = now()
             updateChat(chatId, (chat) =>
-              mapMessage(chat, localId, (m) => ({ ...m, status: 'pending', error: undefined })),
+              mapMessage(chat, localId, (m) => ({
+                ...m,
+                status: 'pending',
+                error: undefined,
+                sentAt,
+              })),
             )
             return message.text
           },
@@ -296,12 +335,20 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
               const known = existing.messages.find((m) => m.id === event.idMessage)
               if (known) {
                 const offset = offsetFromEcho(known, event.timestamp)
-                return offset === null ? state : { clockOffsetMs: offset }
+                if (offset === null) return state
+                return {
+                  clockOffsetMs: offset,
+                  chats: {
+                    ...state.chats,
+                    [event.chatId]: retime(existing, known.id, event.timestamp),
+                  },
+                }
               }
 
               const withContact = mergeContact(existing, event.contact)
               const buffered = takeBufferedStatus(event.idMessage)
-              const timestamp = event.timestamp + state.clockOffsetMs
+              // Every message is shown in server time: this is what the peer's phone displays.
+              const timestamp = event.timestamp
 
               // Our own message sent from this app: the optimistic copy becomes the server one
               // (the HTTP response is late, timed out, or the tab was reloaded meanwhile).
@@ -320,7 +367,10 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
                 const offset =
                   local.status === 'pending' ? offsetFromEcho(local, event.timestamp) : null
                 return {
-                  chats: { ...state.chats, [event.chatId]: adopted },
+                  chats: {
+                    ...state.chats,
+                    [event.chatId]: retime(adopted, event.idMessage, timestamp),
+                  },
                   ...(offset === null ? {} : { clockOffsetMs: offset }),
                 }
               }
@@ -437,19 +487,23 @@ export function syncWithOtherTabs(store: ChatStore, instanceId: string): () => v
   const key = chatStorageKey(instanceId)
   const onStorage = (event: StorageEvent) => {
     if (event.key !== key || !event.newValue) return
-    let remote: Record<string, Chat> | undefined
+    let saved: PersistedChatState | undefined
     try {
-      remote = (JSON.parse(event.newValue) as { state?: PersistedChatState }).state?.chats
+      saved = (JSON.parse(event.newValue) as { state?: PersistedChatState }).state
     } catch {
       return
     }
+    const remote = saved?.chats
     if (!remote) return
-    const { chats, activeChatId } = store.getState()
+    const { chats, activeChatId, clockOffsetMs } = store.getState()
     const next = mergeRemoteChats(chats, remote, activeChatId)
     store.setState({
       chats: next,
       // The open chat may have been deleted in the other tab.
       activeChatId: activeChatId && next[activeChatId] ? activeChatId : null,
+      // Take the other tab's offset too: otherwise each tab would write its own value back and
+      // the two would keep triggering each other's storage events.
+      clockOffsetMs: typeof saved?.clockOffsetMs === 'number' ? saved.clockOffsetMs : clockOffsetMs,
     })
   }
   window.addEventListener('storage', onStorage)
