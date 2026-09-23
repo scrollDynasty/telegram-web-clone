@@ -63,6 +63,12 @@ export const MessageBubble = memo(function MessageBubble({
       <div className={clsx(styles.bubble, message.status === 'failed' && styles.failed)}>
         <div className={styles.text}>
           <span className="visually-hidden">{author}: </span>
+          {message.media && (
+            <span className={styles.media}>
+              {message.media}
+              {message.text && <br />}
+            </span>
+          )}
           <Linkify text={message.text} />
           {/* Floated meta reserves its own room at the end of the last line (Telegram trick). */}
           <span className={styles.meta}>

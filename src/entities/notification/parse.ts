@@ -18,6 +18,24 @@ const senderDataSchema = z.looseObject({
   senderPhoneNumber: z.union([z.number(), z.string()]).optional().catch(undefined),
 })
 
+/**
+ * Non-text messages are out of scope (text chat only), but silently dropping them leaves holes
+ * in the conversation. They are shown as a short placeholder, with the caption when there is one.
+ * Reactions, edits and deletions are not messages and stay ignored.
+ */
+const MEDIA_LABELS = {
+  imageMessage: '📷 Фото',
+  videoMessage: '🎬 Видео',
+  documentMessage: '📎 Файл',
+  audioMessage: '🎵 Аудио',
+  stickerMessage: 'Стикер',
+  locationMessage: '📍 Геопозиция',
+  contactMessage: '👤 Контакт',
+  pollMessage: '📊 Опрос',
+} as const
+
+type MediaType = keyof typeof MEDIA_LABELS
+
 const messageDataSchema = z.discriminatedUnion('typeMessage', [
   z.looseObject({
     typeMessage: z.literal('textMessage'),
@@ -26,6 +44,13 @@ const messageDataSchema = z.discriminatedUnion('typeMessage', [
   z.looseObject({
     typeMessage: z.literal('extendedTextMessage'),
     extendedTextMessageData: z.looseObject({ text: z.string() }),
+  }),
+  z.looseObject({
+    typeMessage: z.enum(Object.keys(MEDIA_LABELS) as [MediaType, ...MediaType[]]),
+    fileMessageData: z
+      .looseObject({ caption: z.string().optional().catch(undefined) })
+      .optional()
+      .catch(undefined),
   }),
 ])
 
@@ -79,10 +104,16 @@ export function parseNotification(body: unknown): ChatEvent | null {
   if (senderData.chatId.startsWith('-')) return null
   if (senderData.chatType && senderData.chatType !== 'user') return null
 
-  const text =
-    messageData.typeMessage === 'textMessage'
-      ? messageData.textMessageData.textMessage
-      : messageData.extendedTextMessageData.text
+  let text: string
+  let media: string | undefined
+  if (messageData.typeMessage === 'textMessage') {
+    text = messageData.textMessageData.textMessage
+  } else if (messageData.typeMessage === 'extendedTextMessage') {
+    text = messageData.extendedTextMessageData.text
+  } else {
+    media = MEDIA_LABELS[messageData.typeMessage]
+    text = nonEmpty(messageData.fileMessageData?.caption) ?? ''
+  }
 
   const incoming = typeWebhook === 'incomingMessageReceived'
   const phone = senderData.senderPhoneNumber ? String(senderData.senderPhoneNumber) : undefined
@@ -93,6 +124,7 @@ export function parseNotification(body: unknown): ChatEvent | null {
     idMessage,
     direction: incoming ? 'in' : 'out',
     text,
+    ...(media ? { media } : {}),
     timestamp: timestamp * 1000,
     // For outgoing notifications senderData describes *us*, so only the chat name is trustworthy.
     contact: incoming

@@ -21,7 +21,8 @@ export const ChatListItem = memo(function ChatListItem({
 }: ChatListItemProps) {
   const title = chatTitle(chat)
   const last = lastMessage(chat)
-  const subtitle = last?.text ?? (chat.phone ? formatPhone(chat.phone) : (chat.username ?? ''))
+  const lastText = last?.media ? [last.media, last.text].filter(Boolean).join(', ') : last?.text
+  const subtitle = lastText ?? (chat.phone ? formatPhone(chat.phone) : (chat.username ?? ''))
 
   // The unread badge stays mounted while it shrinks away, showing the last non-zero count.
   // It pops in only when it appears during the row's lifetime, not on the first render.

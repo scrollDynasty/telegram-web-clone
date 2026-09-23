@@ -29,6 +29,17 @@ const ADOPT_FAILED_WINDOW_MS = 5 * 60 * 1000
 /** Status notifications that arrive before their message is known (HTTP response still pending). */
 const MAX_BUFFERED_STATUSES = 50
 
+/**
+ * Own messages are stamped with the local clock, notifications with the server's. When the PC
+ * clock is off, a reply would be shown earlier than it was sent and even above the question.
+ * Like Telegram's clients, we learn the local−server offset and shift server times by it. The
+ * reference is the echo of our own just-sent message: its local send time is known exactly.
+ */
+const FRESH_ECHO_MS = 60_000
+
+/** Server timestamps are floored to whole seconds: the real instant is ~half a second later. */
+const SERVER_ROUNDING_MS = 500
+
 export const chatStorageKey = (instanceId: string) => `gac:chats:${instanceId}`
 
 export interface ChatContactInput {
@@ -41,6 +52,8 @@ export interface ChatContactInput {
 export interface ChatState {
   chats: Record<string, Chat>
   activeChatId: string | null
+  /** Local clock minus server clock (ms), added to every server timestamp. */
+  clockOffsetMs: number
 
   openChat: (chatId: string) => void
   closeChat: () => void
@@ -56,7 +69,7 @@ export interface ChatState {
   applyEvent: (event: ChatEvent) => void
 }
 
-type PersistedChatState = Pick<ChatState, 'chats'>
+type PersistedChatState = Pick<ChatState, 'chats'> & Partial<Pick<ChatState, 'clockOffsetMs'>>
 
 function emptyChat(id: string, now: number): Chat {
   return { id, messages: [], unread: 0, createdAt: now, lastActivityAt: now }
@@ -168,6 +181,13 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
           return update
         }
 
+        /** Offset learned from the server echo of our own recent message, or null. */
+        const offsetFromEcho = (own: Message, serverTimestamp: number): number | null => {
+          if (own.direction !== 'out' || own.localId === undefined) return null
+          if (now() - own.timestamp > FRESH_ECHO_MS) return null
+          return own.timestamp - (serverTimestamp + SERVER_ROUNDING_MS)
+        }
+
         const updateChat = (chatId: string, fn: (chat: Chat) => Chat) =>
           set((state) => {
             const chat = state.chats[chatId]
@@ -179,6 +199,7 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
         return {
           chats: {},
           activeChatId: null,
+          clockOffsetMs: 0,
 
           openChat: (chatId) =>
             set((state) => {
@@ -270,17 +291,24 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
 
             set((state) => {
               const existing = state.chats[event.chatId] ?? emptyChat(event.chatId, now())
-              // Duplicate delivery (e.g. deleteNotification failed and the queue replayed it).
-              if (existing.messages.some((m) => m.id === event.idMessage)) return state
+              // Already known: a replayed delivery, or the echo of our message whose sendMessage
+              // response came first. The echo is still useful: it calibrates the clock offset.
+              const known = existing.messages.find((m) => m.id === event.idMessage)
+              if (known) {
+                const offset = offsetFromEcho(known, event.timestamp)
+                return offset === null ? state : { clockOffsetMs: offset }
+              }
 
               const withContact = mergeContact(existing, event.contact)
               const buffered = takeBufferedStatus(event.idMessage)
+              const timestamp = event.timestamp + state.clockOffsetMs
 
               // Our own message sent from this app: the optimistic copy becomes the server one
               // (the HTTP response is late, timed out, or the tab was reloaded meanwhile).
+              // Only text can be ours: this app never sends media.
               const local =
-                event.direction === 'out'
-                  ? findLocalCopy(withContact.messages, event.text, event.timestamp)
+                event.direction === 'out' && !event.media
+                  ? findLocalCopy(withContact.messages, event.text, timestamp)
                   : undefined
               if (local) {
                 const adopted = mapMessage(withContact, local.id, (m) =>
@@ -289,14 +317,19 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
                     buffered,
                   ),
                 )
-                return { chats: { ...state.chats, [event.chatId]: adopted } }
+                const offset =
+                  local.status === 'pending' ? offsetFromEcho(local, event.timestamp) : null
+                return {
+                  chats: { ...state.chats, [event.chatId]: adopted },
+                  ...(offset === null ? {} : { clockOffsetMs: offset }),
+                }
               }
 
               const isUnread = event.direction === 'in' && state.activeChatId !== event.chatId
               const chat: Chat = {
                 ...withContact,
                 unread: isUnread ? withContact.unread + 1 : withContact.unread,
-                lastActivityAt: Math.max(withContact.lastActivityAt, event.timestamp),
+                lastActivityAt: Math.max(withContact.lastActivityAt, timestamp),
                 messages: insertMessage(
                   withContact.messages,
                   withStatus(
@@ -304,7 +337,8 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
                       id: event.idMessage,
                       direction: event.direction,
                       text: event.text,
-                      timestamp: event.timestamp,
+                      ...(event.media ? { media: event.media } : {}),
+                      timestamp,
                       status: 'sent',
                     },
                     buffered,
@@ -321,10 +355,16 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
         name: chatStorageKey(instanceId),
         version: 1,
         storage: createJSONStorage(() => safeStorage(() => localStorage)),
-        partialize: (state): PersistedChatState => ({ chats: state.chats }),
+        partialize: (state): PersistedChatState => ({
+          chats: state.chats,
+          clockOffsetMs: state.clockOffsetMs,
+        }),
         // Messages that were in flight when the tab closed will never resolve.
         merge: (persisted, current) => {
-          const chats = (persisted as PersistedChatState | undefined)?.chats ?? {}
+          const saved = persisted as PersistedChatState | undefined
+          const chats = saved?.chats ?? {}
+          const clockOffsetMs =
+            typeof saved?.clockOffsetMs === 'number' ? saved.clockOffsetMs : current.clockOffsetMs
           const fixed = Object.fromEntries(
             Object.entries(chats).map(([id, chat]) => [
               id,
@@ -338,7 +378,7 @@ export function createChatStore(instanceId: string, now: () => number = Date.now
               },
             ]),
           )
-          return { ...current, chats: fixed }
+          return { ...current, chats: fixed, clockOffsetMs }
         },
       },
     ),

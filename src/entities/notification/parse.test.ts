@@ -38,6 +38,18 @@ describe('parseNotification', () => {
     })
   })
 
+  it('turns a photo into a placeholder message, keeping its caption', () => {
+    expect(
+      parseNotification(
+        incoming({ typeMessage: 'imageMessage', fileMessageData: { caption: 'Смотри' } }),
+      ),
+    ).toMatchObject({ type: 'message', media: '📷 Фото', text: 'Смотри' })
+    expect(parseNotification(incoming({ typeMessage: 'stickerMessage' }))).toMatchObject({
+      media: 'Стикер',
+      text: '',
+    })
+  })
+
   it('parses an incoming extendedTextMessage (text with a link)', () => {
     const event = parseNotification(
       incoming({
@@ -74,7 +86,10 @@ describe('parseNotification', () => {
   })
 
   it.each([
-    ['media messages', incoming({ typeMessage: 'imageMessage', fileMessageData: {} })],
+    [
+      'reactions (not messages)',
+      incoming({ typeMessage: 'reactionMessage', extendedTextMessageData: { text: '👍' } }),
+    ],
     [
       'group chats',
       incoming(

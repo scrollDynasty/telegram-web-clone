@@ -206,3 +206,9 @@
     transform: scale(0.8);
   }
 }
+
+/* Placeholder of a non-text message (media is out of scope of this text chat). */
+.media {
+  font-style: italic;
+  opacity: 0.85;
+}

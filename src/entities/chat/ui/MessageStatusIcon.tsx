@@ -32,13 +32,15 @@ export function MessageStatusIcon({ status, size = 19 }: { status: MessageStatus
         </svg>
       )
     }
+    // Telegram has no separate "delivered" mark: one tick until the peer reads it, then two.
+    // GREEN-API's `delivered` (reached the recipient) is therefore still a single tick.
     case 'sent':
+    case 'delivered':
       return (
         <svg {...common} width={size} height={size}>
           <path d="m4.5 12.5 4.5 4.5L19 7" />
         </svg>
       )
-    case 'delivered':
     case 'read':
       // Second tick overlaps the first one's long stroke, as in Telegram's double check.
       return (

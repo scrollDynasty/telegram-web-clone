@@ -75,6 +75,52 @@ describe('chat store', () => {
     expect(state().chats[CHAT]!.messages.map((m) => m.id)).toEqual(['local-1', 'reply'])
   })
 
+  describe('clock offset (PC clock differs from the server)', () => {
+    function withOwnMessage() {
+      let clock = 100_000
+      const store = createChatStore('test', () => clock)
+      const state = () => store.getState()
+      state().upsertChat({ id: CHAT })
+      state().addOutgoing(CHAT, 'local-1', 'hi') // local send time: 100 s
+      return { state, tick: (ms: number) => (clock += ms) }
+    }
+
+    it('learns it from the echo that follows the sendMessage response', () => {
+      const { state, tick } = withOwnMessage()
+      state().resolveOutgoing(CHAT, 'local-1', 'srv-1')
+      tick(1_000)
+      // The local clock runs ~40 s ahead: the server stamped our message at 60 s.
+      state().applyEvent(
+        incomingEvent({ idMessage: 'srv-1', direction: 'out', text: 'hi', timestamp: 60_000 }),
+      )
+      expect(state().clockOffsetMs).toBe(39_500)
+
+      // A reply sent 1 s after our message lands after it, at local-clock time.
+      state().applyEvent(incomingEvent({ idMessage: 'reply', timestamp: 61_000 }))
+      const messages = state().chats[CHAT]!.messages
+      expect(messages.map((m) => m.id)).toEqual(['srv-1', 'reply'])
+      expect(messages[1]!.timestamp).toBe(100_500)
+    })
+
+    it('learns it when the echo adopts the pending copy', () => {
+      const { state } = withOwnMessage()
+      state().applyEvent(
+        incomingEvent({ idMessage: 'srv-1', direction: 'out', text: 'hi', timestamp: 60_000 }),
+      )
+      expect(state().clockOffsetMs).toBe(39_500)
+    })
+
+    it('ignores the echo of an old message (not a clock reference)', () => {
+      const { state, tick } = withOwnMessage()
+      state().resolveOutgoing(CHAT, 'local-1', 'srv-1')
+      tick(5 * 60_000)
+      state().applyEvent(
+        incomingEvent({ idMessage: 'srv-1', direction: 'out', text: 'hi', timestamp: 60_000 }),
+      )
+      expect(state().clockOffsetMs).toBe(0)
+    })
+  })
+
   it('caps stored history', () => {
     const { state } = setup()
     for (let i = 0; i < MAX_MESSAGES_PER_CHAT + 5; i++) {

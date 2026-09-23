@@ -9,6 +9,8 @@ export interface Message {
   localId?: string
   direction: 'in' | 'out'
   text: string
+  /** Placeholder for a non-text message (e.g. "📷 Фото"); `text` then holds its caption, if any. */
+  media?: string
   /** Unix time in milliseconds. */
   timestamp: number
   /** Meaningful for outgoing messages only. */
@@ -36,6 +38,7 @@ export type ChatEvent =
       idMessage: string
       direction: 'in' | 'out'
       text: string
+      media?: string
       /** Unix time in milliseconds. */
       timestamp: number
       contact: { name?: string; phone?: string }
