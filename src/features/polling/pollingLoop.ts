@@ -16,6 +16,12 @@ export interface PollingLoopOptions {
   /** Called once when polling cannot continue (e.g. revoked token); the loop then stops. */
   onFatalError?: (error: GreenApiError) => void
   receiveTimeoutSec?: number
+  /**
+   * Quick liveness check run alongside the long poll while not yet online. An empty queue makes
+   * receiveNotification answer only after `receiveTimeoutSec`, so without it the UI would say
+   * "connecting" for that long. Resolves true when the instance is reachable and authorized.
+   */
+  probe?: (signal: AbortSignal) => Promise<boolean>
   sleep?: (ms: number, signal: AbortSignal) => Promise<void>
   random?: () => number
 }
@@ -56,9 +62,11 @@ export async function runPollingLoop({
   onStatusChange,
   onFatalError,
   receiveTimeoutSec = 20,
+  probe,
   sleep = abortableSleep,
   random = Math.random,
 }: PollingLoopOptions): Promise<void> {
+  let probing = false
   let failures = 0
   let status: ConnectionStatus = 'connecting'
   let lastMessage: string | undefined
@@ -72,6 +80,24 @@ export async function runPollingLoop({
   onStatusChange?.(status)
 
   while (!signal.aborted) {
+    // Not after `unavailable`: the instance answers but refuses the queue, a probe would flap it.
+    if (probe && !probing && (status === 'connecting' || status === 'offline')) {
+      probing = true
+      probe(signal)
+        .then(
+          (ok) => {
+            if (ok && !signal.aborted && (status === 'connecting' || status === 'offline')) {
+              setStatus('online')
+            }
+          },
+          () => {
+            // The long poll reports real failures; a failed probe just changes nothing.
+          },
+        )
+        .finally(() => {
+          probing = false
+        })
+    }
     try {
       const notification = await client.receiveNotification(receiveTimeoutSec, signal)
       failures = 0

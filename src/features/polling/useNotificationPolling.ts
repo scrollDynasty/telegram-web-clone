@@ -33,6 +33,8 @@ export function useNotificationPolling(instanceId: string): ConnectionState {
       runPollingLoop({
         client,
         signal,
+        probe: async (probeSignal) =>
+          (await client.getAccountSettings(probeSignal)).stateInstance === 'authorized',
         onStatusChange: (status, error) =>
           setState({
             status,

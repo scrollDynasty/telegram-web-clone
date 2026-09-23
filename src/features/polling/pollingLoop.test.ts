@@ -120,6 +120,69 @@ describe('runPollingLoop', () => {
   })
 })
 
+describe('runPollingLoop probe', () => {
+  function hangingClient(controller: AbortController) {
+    let release: () => void = () => {}
+    return {
+      release: () => release(),
+      client: {
+        // The long poll hangs like an empty queue does, until the test releases it.
+        receiveNotification: vi.fn<
+          (timeoutSec: number, signal?: AbortSignal) => Promise<ReceivedNotification | null>
+        >(
+          () =>
+            new Promise((resolve) => {
+              release = () => {
+                controller.abort()
+                resolve(null)
+              }
+            }),
+        ),
+        deleteNotification: vi.fn<(receiptId: number, signal?: AbortSignal) => Promise<boolean>>(
+          async () => true,
+        ),
+      },
+    }
+  }
+
+  it('reports online as soon as the probe succeeds, without waiting for the long poll', async () => {
+    const controller = new AbortController()
+    const { client, release } = hangingClient(controller)
+    const statuses: ConnectionStatus[] = []
+    const loop = runPollingLoop({
+      client,
+      signal: controller.signal,
+      onNotification: () => {},
+      onStatusChange: (s) => statuses.push(s),
+      probe: async () => true,
+    })
+
+    await vi.waitFor(() => expect(statuses).toEqual(['connecting', 'online']))
+    release()
+    await loop
+  })
+
+  it('stays connecting when the probe says the instance is not ready', async () => {
+    const controller = new AbortController()
+    const { client, release } = hangingClient(controller)
+    const statuses: ConnectionStatus[] = []
+    const probe = vi.fn<(signal: AbortSignal) => Promise<boolean>>(async () => false)
+    const loop = runPollingLoop({
+      client,
+      signal: controller.signal,
+      onNotification: () => {},
+      onStatusChange: (s) => statuses.push(s),
+      probe,
+    })
+
+    await vi.waitFor(() => expect(probe).toHaveBeenCalled())
+    await Promise.resolve()
+    expect(statuses).toEqual(['connecting'])
+    release()
+    await loop
+  })
+})
+
 describe('backoffDelay', () => {
   it('grows exponentially and is capped at 30s', () => {
     expect(backoffDelay(1, () => 1)).toBe(1000)
