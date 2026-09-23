@@ -38,8 +38,8 @@ export function LoginPage() {
             </li>
             <li>Авторизуйте инстанс: Telegram → Настройки → Устройства → Подключить устройство.</li>
             <li>
-              Скопируйте <code>apiUrl</code>, <code>idInstance</code> и{' '}
-              <code>apiTokenInstance</code> со страницы инстанса.
+              Скопируйте <code>idInstance</code> и <code>apiTokenInstance</code> со страницы
+              инстанса. <code>apiUrl</code> нужен, только если он там другой.
             </li>
             <li>
               В настройках инстанса оставьте поле webhook URL пустым и включите уведомления о

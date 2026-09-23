@@ -2,7 +2,7 @@ import { Check, Eye, EyeOff } from 'lucide-react'
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { useSessionStore } from '@/entities/session/store'
 import { describeError } from '@/shared/api/errors'
-import { DEFAULT_API_URL, GreenApiClient, normalizeApiUrl } from '@/shared/api/greenApi'
+import { apiUrlForInstance, GreenApiClient, normalizeApiUrl } from '@/shared/api/greenApi'
 import { Button } from '@/shared/ui/Button'
 import { IconButton } from '@/shared/ui/IconButton'
 import { TextField } from '@/shared/ui/TextField'
@@ -21,11 +21,14 @@ const STATE_MESSAGES: Record<string, string> = {
 
 function validate(values: Record<Field, string>): Errors {
   const errors: Errors = {}
-  try {
-    const url = new URL(normalizeApiUrl(values.apiUrl))
-    if (url.protocol !== 'https:') errors.apiUrl = 'Адрес должен начинаться с https://'
-  } catch {
-    errors.apiUrl = 'Некорректный адрес'
+  // apiUrl is optional: an empty field falls back to the instance's own host.
+  if (values.apiUrl.trim()) {
+    try {
+      const url = new URL(normalizeApiUrl(values.apiUrl))
+      if (url.protocol !== 'https:') errors.apiUrl = 'Адрес должен начинаться с https://'
+    } catch {
+      errors.apiUrl = 'Некорректный адрес'
+    }
   }
   if (!/^\d{6,}$/.test(values.idInstance.trim()))
     errors.idInstance = 'Только цифры, например 4100123456'
@@ -36,10 +39,11 @@ function validate(values: Record<Field, string>): Errors {
 export function LoginForm() {
   const login = useSessionStore((s) => s.login)
   const [values, setValues] = useState<Record<Field, string>>({
-    apiUrl: DEFAULT_API_URL,
+    apiUrl: '',
     idInstance: '',
     apiTokenInstance: '',
   })
+  const derivedApiUrl = apiUrlForInstance(values.idInstance)
   const [remember, setRemember] = useState(true)
   const [showToken, setShowToken] = useState(false)
   const [errors, setErrors] = useState<Errors>({})
@@ -63,7 +67,8 @@ export function LoginForm() {
     if (Object.keys(nextErrors).length > 0) return
 
     const credentials = {
-      apiUrl: normalizeApiUrl(values.apiUrl),
+      // validate() guarantees a numeric idInstance, so the derived host exists here.
+      apiUrl: normalizeApiUrl(values.apiUrl.trim() || derivedApiUrl || ''),
       idInstance: values.idInstance.trim(),
       apiTokenInstance: values.apiTokenInstance.trim(),
     }
@@ -116,7 +121,7 @@ export function LoginForm() {
         }
       />
       <TextField
-        label="apiUrl"
+        label="apiUrl (необязательно)"
         name="apiUrl"
         type="url"
         inputMode="url"
@@ -124,7 +129,11 @@ export function LoginForm() {
         value={values.apiUrl}
         onChange={update('apiUrl')}
         error={errors.apiUrl}
-        hint="Указан в личном кабинете рядом с idInstance"
+        hint={
+          derivedApiUrl
+            ? `По умолчанию: ${derivedApiUrl}`
+            : 'Определяется по idInstance; укажите, если в кабинете другой'
+        }
       />
 
       <label className={styles.checkbox}>

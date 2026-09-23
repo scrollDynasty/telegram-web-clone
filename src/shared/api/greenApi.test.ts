@@ -1,5 +1,5 @@
 import { GreenApiError } from './errors'
-import { GreenApiClient } from './greenApi'
+import { apiUrlForInstance, GreenApiClient } from './greenApi'
 
 const credentials = {
   apiUrl: 'https://4100.api.green-api.com/',
@@ -158,5 +158,16 @@ describe('GreenApiClient', () => {
     )
     controller.abort()
     await expect(promise).rejects.toMatchObject({ name: 'AbortError' })
+  })
+})
+
+describe('apiUrlForInstance', () => {
+  it('derives the instance host from the first 4 digits', () => {
+    expect(apiUrlForInstance('4100123456')).toBe('https://4100.api.green-api.com')
+    expect(apiUrlForInstance(' 1103000001 ')).toBe('https://1103.api.green-api.com')
+  })
+
+  it.each(['', '410', 'abc12345'])('returns null for %j', (id) => {
+    expect(apiUrlForInstance(id)).toBeNull()
   })
 })

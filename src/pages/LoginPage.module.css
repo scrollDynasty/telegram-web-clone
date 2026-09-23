@@ -102,22 +102,26 @@
   text-align: left;
 }
 
+/* Plain inline flow (not flex): text, links and <code> must wrap as one paragraph. */
 .help li {
-  display: flex;
+  position: relative;
   margin: 12px 0;
+  padding-left: 34px;
   color: var(--text);
   font-size: 15px;
+  line-height: 22px;
   counter-increment: step;
 }
 
 .help li::before {
   content: counter(step);
+  position: absolute;
+  top: 0;
+  left: 0;
   display: grid;
   place-items: center;
-  flex: none;
-  min-width: 22px;
+  width: 22px;
   height: 22px;
-  margin: 0 12px 0 0;
   border-radius: 50%;
   background: var(--accent);
   color: #fff;
@@ -132,6 +136,7 @@
   background: var(--surface-hover);
   color: var(--text);
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .footer {

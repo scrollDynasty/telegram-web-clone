@@ -31,7 +31,15 @@ interface RequestOptions {
 
 const DEFAULT_TIMEOUT_MS = 15_000
 
-export const DEFAULT_API_URL = 'https://api.green-api.com'
+/**
+ * GREEN-API serves each instance from a host named after the first 4 digits of its id
+ * (e.g. Telegram instance 4100123456 → https://4100.api.green-api.com). Unlike the shared
+ * api.green-api.com, these hosts allow browser DELETE requests (deleteNotification) via CORS.
+ */
+export function apiUrlForInstance(idInstance: string): string | null {
+  const digits = idInstance.trim()
+  return /^\d{4,}$/.test(digits) ? `https://${digits.slice(0, 4)}.api.green-api.com` : null
+}
 
 export function normalizeApiUrl(apiUrl: string): string {
   return apiUrl.trim().replace(/\/+$/, '')

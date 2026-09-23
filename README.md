@@ -7,7 +7,7 @@
 
 ## Возможности
 
-- Вход по параметрам инстанса: `apiUrl`, `idInstance`, `apiTokenInstance`. Перед входом проверяется, что инстанс авторизован.
+- Вход по `idInstance` и `apiTokenInstance`. `apiUrl` необязателен: по умолчанию он вычисляется из `idInstance` (`https://4100.api.green-api.com` для `4100…`). Перед входом проверяется, что инстанс авторизован.
 - Новый чат по номеру телефона (или `@username`). Номер заранее превращается в Telegram `chatId` через `CheckAccount`.
 - Отправка текстовых сообщений методом [`SendMessage`](https://green-api.com/telegram/docs/api/sending/SendMessage/): оптимистичный UI, статусы ⏳ → ✓ → ✓✓ и повтор при ошибке.
 - Получение сообщений через [HTTP API](https://green-api.com/telegram/docs/api/receiving/technology-http-api/) (`ReceiveNotification` + `DeleteNotification`, long polling).
@@ -31,7 +31,7 @@ npm run dev
 
 1. Зарегистрируйтесь в [личном кабинете](https://console.green-api.com) и создайте инстанс **Telegram**.
 2. Авторизуйте его: Telegram → Настройки → Устройства → Подключить устройство → отсканируйте QR.
-3. На странице инстанса скопируйте `apiUrl`, `idInstance`, `apiTokenInstance`.
+3. На странице инстанса скопируйте `idInstance` и `apiTokenInstance` (и `apiUrl`, если он отличается от `https://<первые 4 цифры idInstance>.api.green-api.com`).
 4. В настройках инстанса:
    - поле **URL для уведомлений (webhook)** должно быть пустым, иначе HTTP API не отдаёт уведомления;
    - включите «Получать уведомления о входящих сообщениях»;
