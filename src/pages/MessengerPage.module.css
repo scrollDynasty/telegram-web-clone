@@ -1,0 +1,168 @@
+.shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: calc(var(--sidebar-width) + var(--panel-inset) + var(--safe-left)) minmax(
+      0,
+      1fr
+    );
+  /* A definite row: without it the implicit auto row grows with a long chat history and the
+   * whole shell overflows instead of the message list scrolling. */
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* The left column floats as an "island" over the app-wide wallpaper. */
+.sidebar {
+  min-width: 0;
+  height: 100%;
+  padding: calc(var(--panel-inset) + var(--safe-top)) 0
+    calc(var(--panel-inset) + var(--safe-bottom)) calc(var(--panel-inset) + var(--safe-left));
+  overflow: hidden;
+}
+
+/* The chat's floating header and composer stay clear of the notch / rounded corners. */
+.main {
+  position: relative;
+  min-width: 0;
+  height: 100%;
+  padding-right: var(--safe-right);
+  overflow: clip;
+  isolation: isolate;
+}
+
+/* ───── Wallpaper: Telegram's default 4-point gradient + doodle pattern ─────
+ * Light: gradient + black doodles soft-lit on top (::after).
+ * Dark: black base; the gradient is visible only through the doodles (masked ::before).
+ * Both modes are driven by light-dark() tokens, see index.css. */
+.wallpaper {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--wallpaper-base);
+  pointer-events: none;
+}
+
+.wallpaper::before,
+.wallpaper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.wallpaper::before {
+  background:
+    radial-gradient(circle at 26.5% 58.2%, var(--wallpaper-1) 0, transparent 60%),
+    radial-gradient(circle at 41.5% 83.6%, var(--wallpaper-2) 0, transparent 60%),
+    radial-gradient(circle at 73.5% 41.8%, var(--wallpaper-3) 0, transparent 60%),
+    radial-gradient(circle at 58.5% 16.4%, var(--wallpaper-4) 0, transparent 60%),
+    var(--wallpaper-gradient-base);
+  mask-image:
+    linear-gradient(var(--wallpaper-mask-fill), var(--wallpaper-mask-fill)),
+    url('../shared/assets/chat-pattern.svg');
+  mask-repeat: no-repeat, repeat;
+  mask-position: center;
+  mask-size:
+    100% 100%,
+    430px auto;
+}
+
+.wallpaper::after {
+  background: var(--wallpaper-overlay);
+  mix-blend-mode: soft-light;
+  opacity: 0.375;
+  mask-image: url('../shared/assets/chat-pattern.svg');
+  mask-repeat: repeat;
+  mask-position: center;
+  mask-size: 430px auto;
+}
+
+/* The chat pane's own copy is only needed on phones, where it slides over the list. */
+.mainWallpaper {
+  display: none;
+}
+
+.chatSlot {
+  height: 100%;
+}
+
+.placeholder {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 16px;
+}
+
+.placeholder span {
+  padding: 3px 8px;
+  border-radius: var(--radius-bubble);
+  background: var(--pill-bg);
+  color: var(--pill-text);
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+  backdrop-filter: blur(4px);
+}
+
+/* Mobile: one pane at a time, the chat slides over the list. */
+@media (max-width: 767px) {
+  .shell {
+    grid-template-columns: 100%;
+    /* clip (not hidden): focusing the off-screen composer must not scroll the shell sideways. */
+    overflow: clip;
+  }
+
+  .sidebar {
+    padding: 0;
+  }
+
+  .main {
+    padding-left: var(--safe-left);
+  }
+
+  /* Telegram's Main.scss (≤600px): the chat slides over, the list shifts 20% and dims. */
+  .sidebar,
+  .main {
+    grid-row: 1;
+    grid-column: 1;
+    transition: transform var(--layer-transition);
+  }
+
+  .sidebar {
+    position: relative;
+  }
+
+  .sidebar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--layer-transition);
+  }
+
+  .main {
+    transform: translate3d(100%, 0, 0);
+  }
+
+  .mainWallpaper {
+    display: block;
+  }
+
+  .chatOpen .main {
+    transform: translate3d(0, 0, 0);
+  }
+
+  .chatOpen .sidebar {
+    transform: translate3d(-20%, 0, 0);
+  }
+
+  .chatOpen .sidebar::after {
+    opacity: var(--layer-blackout-opacity);
+  }
+}

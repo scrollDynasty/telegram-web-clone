@@ -1,0 +1,208 @@
+/* Values from Telegram Web A: Message.scss, _message-content.scss, MessageMeta.scss. */
+.row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 6px;
+}
+
+/* Live tail (Telegram's MessageList.scss): own messages fly up from the composer,
+ * incoming ones grow from their tail corner. History on mount does not animate. */
+.appearOut {
+  transform-origin: bottom right;
+  animation: msg-out 200ms ease-out both;
+}
+
+.appearIn {
+  transform-origin: bottom left;
+  animation: msg-in 200ms ease both;
+}
+
+.last {
+  margin-bottom: 10px;
+}
+
+.in {
+  align-items: flex-start;
+}
+
+.out {
+  align-items: flex-end;
+}
+
+.bubble {
+  --r-top-start: var(--radius-bubble);
+  --r-bottom-start: var(--radius-bubble);
+
+  position: relative;
+  max-width: min(29rem, calc(100% - 48px));
+  padding: 5px 8px 6px;
+  box-shadow: 0 1px 2px var(--default-shadow);
+  font-size: 16px;
+  line-height: 1.3125;
+  overflow-wrap: anywhere;
+}
+
+.out .bubble {
+  max-width: min(30rem, calc(100% - 48px));
+}
+
+/* Corners on the sender's side shrink inside a group; the last one gets the tail. */
+.in:not(.first) .bubble,
+.out:not(.first) .bubble {
+  --r-top-start: var(--radius-bubble-small);
+}
+
+.in:not(.last) .bubble,
+.out:not(.last) .bubble {
+  --r-bottom-start: var(--radius-bubble-small);
+}
+
+.last .bubble {
+  --r-bottom-start: 0;
+}
+
+.in .bubble {
+  border-radius: var(--r-top-start) var(--radius-bubble) var(--radius-bubble) var(--r-bottom-start);
+  background: var(--bubble-in);
+  color: var(--bubble-in-text);
+}
+
+.out .bubble {
+  border-radius: var(--radius-bubble) var(--r-top-start) var(--r-bottom-start) var(--radius-bubble);
+  background: var(--bubble-out);
+  color: var(--bubble-out-text);
+}
+
+.appendix {
+  position: absolute;
+  bottom: -1px;
+  width: 9px;
+  height: 18px;
+  overflow: visible;
+  filter: drop-shadow(0 1px 1px rgba(16, 35, 47, 0.15));
+}
+
+.in .appendix {
+  left: -9px;
+  fill: var(--bubble-in);
+}
+
+.out .appendix {
+  right: -8.8px;
+  fill: var(--bubble-out);
+}
+
+.text {
+  white-space: pre-wrap;
+}
+
+.text a {
+  text-decoration: none;
+}
+
+.text a:hover {
+  text-decoration: underline;
+}
+
+.in .text a {
+  color: var(--accent-text);
+}
+
+.out .text a {
+  color: var(--bubble-out-link);
+}
+
+/* Floated meta: sits in the last line when there is room, otherwise wraps below. */
+.meta {
+  position: relative;
+  top: 6px;
+  display: flex;
+  align-items: center;
+  float: right;
+  height: 16px;
+  margin-left: 7px;
+  margin-right: -6px;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.in .meta {
+  color: var(--bubble-in-meta);
+}
+
+.out .meta {
+  color: var(--bubble-out-meta);
+}
+
+.out .time {
+  margin-right: 4px;
+}
+
+.status {
+  display: inline-flex;
+  margin-left: -3px;
+  color: var(--bubble-out-status);
+}
+
+.failure {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 3px 4px 3px 10px;
+  border-radius: var(--radius-bubble);
+  background: var(--pill-bg);
+  color: var(--pill-text);
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+  backdrop-filter: blur(4px);
+}
+
+.retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+}
+
+.retry:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+@media (max-width: 600px) {
+  .last {
+    margin-bottom: 7px;
+  }
+
+  .out {
+    padding-right: 4px;
+  }
+
+  .in {
+    padding-left: 4px;
+  }
+}
+
+@keyframes msg-out {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+}
+
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}

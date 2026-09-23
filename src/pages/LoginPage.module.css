@@ -1,0 +1,174 @@
+/* Telegram Web A's auth screen (components/auth/Auth.scss). */
+.page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  height: 100%;
+  padding: 96px 16px 16px;
+  overflow-y: auto;
+  background: var(--surface);
+}
+
+.corner {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 25.5rem);
+  text-align: center;
+  animation: rise 420ms var(--ease-out);
+}
+
+.logo {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 28px;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+}
+
+.subtitle {
+  margin: 0 0 40px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.subtitle strong {
+  color: var(--text);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.help {
+  width: 100%;
+  margin-top: 16px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+/* Summary looks like a text pill button. */
+.help summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 20px;
+  color: var(--accent-text);
+  font-size: 16px;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  list-style: none;
+  transition: background-color 0.2s;
+}
+
+.help summary:hover,
+.help summary:focus-visible {
+  background: var(--accent-translucent-hover);
+}
+
+.help summary::-webkit-details-marker {
+  display: none;
+}
+
+.chevron {
+  transition: transform var(--duration) var(--ease-out);
+}
+
+.help[open] .chevron {
+  transform: rotate(180deg);
+}
+
+/* Numbered steps with blue counters, as Telegram's QR login instructions. */
+.help ol {
+  margin: 8px 0 0;
+  padding: 0;
+  counter-reset: step;
+  list-style: none;
+  text-align: left;
+}
+
+.help li {
+  display: flex;
+  margin: 12px 0;
+  color: var(--text);
+  font-size: 15px;
+  counter-increment: step;
+}
+
+.help li::before {
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: 22px;
+  height: 22px;
+  margin: 0 12px 0 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+}
+
+.help code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-hover);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.footer {
+  margin: 0;
+  max-width: 25.5rem;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (min-width: 600px) and (min-height: 450px) {
+  .page {
+    padding: 109px 24px 24px;
+  }
+}
+
+@media (min-width: 600px) {
+  .logo {
+    width: 160px;
+    height: 160px;
+    margin-bottom: 40px;
+  }
+
+  .title {
+    font-size: 32px;
+    line-height: 1.5;
+  }
+
+  .subtitle {
+    margin-bottom: 48px;
+    font-size: 16px;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}

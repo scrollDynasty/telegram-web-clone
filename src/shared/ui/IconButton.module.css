@@ -1,0 +1,60 @@
+.button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--icon-secondary);
+  outline: none;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    opacity 0.15s;
+}
+
+.md {
+  width: 40px;
+  height: 40px;
+}
+
+.lg {
+  width: 56px;
+  height: 56px;
+}
+
+/* Translucent: Telegram's `.translucent` round buttons. */
+.ghost:focus-visible {
+  background: var(--interactive-hover);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+@media (hover: hover) {
+  .ghost:hover:not(:disabled) {
+    background: var(--interactive-hover);
+  }
+}
+
+.accent {
+  --ripple-color: rgba(0, 0, 0, 0.08);
+
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.accent:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.accent:focus-visible {
+  background: var(--accent-hover);
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+
+.button:disabled {
+  opacity: 0.5;
+}

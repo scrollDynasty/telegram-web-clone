@@ -1,0 +1,86 @@
+/* Messages scroll under a floating header pill and a floating composer (Telegram Web A). */
+.view {
+  --panel-width: min(calc(100% - var(--panel-inset) * 2), calc(var(--messages-width) - 32px));
+  --top-inset: calc(var(--panel-inset) + var(--safe-top) + var(--middle-header-height));
+  --bottom-inset: calc(
+    var(--panel-inset) + var(--composer-height, 48px) + env(safe-area-inset-bottom, 0px)
+  );
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+}
+
+.header {
+  position: absolute;
+  top: calc(var(--panel-inset) + var(--safe-top));
+  left: 0;
+  right: 0;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  width: var(--panel-width);
+  height: var(--middle-header-height);
+  margin: 0 auto;
+  padding: 4px;
+  border-radius: 32px;
+  background: var(--surface);
+  box-shadow: var(--shadow-pane);
+}
+
+.header .back {
+  display: none;
+  margin-right: 8px;
+}
+
+.avatar {
+  margin-right: 10px;
+}
+
+.titles {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: var(--font-weight-medium);
+  line-height: 24px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header .action {
+  margin-left: 4px;
+}
+
+.composer {
+  position: absolute;
+  bottom: calc(var(--panel-inset) + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  right: 0;
+  z-index: 10;
+  width: var(--panel-width);
+  margin: 0 auto;
+}
+
+@media (max-width: 767px) {
+  .header .back {
+    display: inline-grid;
+  }
+}

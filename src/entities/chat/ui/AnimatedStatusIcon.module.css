@@ -1,0 +1,19 @@
+.glyph,
+.reveal {
+  display: inline-flex;
+}
+
+/* Telegram's Transition.scss `reveal`: clip-path inset, 350ms ease-in. */
+.reveal {
+  animation: status-reveal 350ms ease-in;
+}
+
+@keyframes status-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}

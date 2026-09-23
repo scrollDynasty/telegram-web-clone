@@ -1,0 +1,152 @@
+/* Telegram's .ListItem.Chat: 72px rows, 16px radius, green unread badge. */
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 72px;
+  padding: 9px;
+  border: 0;
+  border-radius: var(--radius-default);
+  overflow: hidden;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  outline: none;
+  transition: background-color 0.15s ease-in-out;
+}
+
+@media (hover: hover) {
+  .item:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.item:focus-visible {
+  background: var(--surface-hover);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  padding-left: 2px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.375;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  margin-inline-start: 4px;
+  color: var(--text-meta);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.status {
+  display: inline-flex;
+  margin-right: 2px;
+  color: var(--meta-colored);
+}
+
+.preview {
+  flex: 1;
+  min-width: 0;
+  padding-right: 4px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.375;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  flex: none;
+  min-width: 22px;
+  height: 22px;
+  margin-inline-start: 8px;
+  padding: 0 7px;
+  border-radius: 12px;
+  background: var(--active);
+  color: #fff;
+  font-size: 14px;
+  font-weight: var(--font-weight-medium);
+  line-height: 23px;
+  text-align: center;
+  /* Telegram's ChatBadge `.transition`. */
+  transition:
+    transform 150ms ease-out,
+    opacity 150ms ease-out;
+}
+
+.badgePop {
+  animation: badge-in 150ms ease-out;
+}
+
+.badgeHidden {
+  opacity: 0;
+  transform: scale(0);
+}
+
+@keyframes badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+}
+
+/* Selected chat: filled with the accent on wide screens (Telegram: ≥600px, here: two-pane). */
+@media (min-width: 768px) {
+  .active,
+  .active:hover,
+  .active:focus-visible {
+    --ripple-color: rgba(255, 255, 255, 0.08);
+
+    background: var(--chat-active);
+    color: #fff;
+  }
+
+  .active .meta,
+  .active .preview,
+  .active .status {
+    color: #fff;
+  }
+
+  .active .badge {
+    background: #fff;
+    color: var(--chat-active);
+  }
+}
+
+/* Phones: rows run edge to edge and the selection is a plain hover tint. */
+@media (max-width: 767px) {
+  .item {
+    border-radius: 0;
+  }
+
+  .active {
+    background: var(--surface-hover);
+  }
+}

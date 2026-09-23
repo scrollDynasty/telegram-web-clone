@@ -1,0 +1,111 @@
+/* One pill with the send button inside (Telegram Web A's chat composer). */
+.composer {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  padding: 4px;
+  border-radius: 24px;
+  background: var(--surface);
+  box-shadow: var(--shadow-footer);
+}
+
+.invalid {
+  box-shadow:
+    var(--shadow-footer),
+    inset 0 0 0 2px var(--danger);
+}
+
+.field {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  max-height: 160px;
+  padding: 9px 8px 9px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 22px;
+  caret-color: var(--text);
+  outline: none;
+  resize: none;
+  /* Scrollbar only once the text is taller than the limit (Telegram's .overflown). */
+  overflow-y: hidden;
+  transition: height 100ms ease;
+}
+
+.overflown {
+  overflow-y: auto;
+}
+
+/* The pill itself is the field: no extra ring inside it. */
+.textarea:focus-visible {
+  outline: none;
+}
+
+.textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+.counter {
+  position: absolute;
+  right: 8px;
+  bottom: 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.invalid .counter {
+  color: var(--danger);
+}
+
+.composer .send {
+  width: 40px;
+  height: 40px;
+  margin-left: 4px;
+  border-radius: 20px;
+}
+
+/* Disabled: keep the filled circle, dim only the glyph. */
+.composer .send:disabled {
+  opacity: 1;
+}
+
+.sendIcon {
+  display: inline-grid;
+  transition: opacity 150ms ease-out;
+}
+
+.composer .send:disabled .sendIcon {
+  opacity: 0.5;
+}
+
+/* Telegram's grow-icon (0.4s ease-out) when the button becomes active. */
+.composer .send:not(:disabled) .sendIcon {
+  animation: grow-icon 400ms ease-out;
+}
+
+@keyframes grow-icon {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}

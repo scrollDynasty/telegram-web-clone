@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="Веб-чат для Telegram на базе GREEN-API: отправка и получение текстовых сообщений."
+    />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#212121" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Telegram Web · GREEN-API</title>
+    <!-- Apply the saved theme before the first paint (no flash of the OS theme). -->
+    <script>
+      try {
+        var p = JSON.parse(localStorage.getItem('gac:theme') || 'null')
+        p = p && p.state && p.state.preference
+        if (p === 'light' || p === 'dark') {
+          document.documentElement.setAttribute('data-theme', p)
+          var c = p === 'dark' ? '#212121' : '#ffffff'
+          document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+            m.content = c
+          })
+        }
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

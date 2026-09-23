@@ -1,0 +1,94 @@
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: var(--radius-button);
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  outline: none;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    opacity 0.2s;
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.block {
+  width: 100%;
+}
+
+.primary {
+  --ripple-color: rgba(0, 0, 0, 0.08);
+
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.primary:hover:not(:disabled),
+.primary:focus-visible {
+  background: var(--accent-hover);
+}
+
+/* Transparent buttons with colored text: dialog actions, secondary links. */
+.text,
+.danger {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 20px;
+  background: transparent;
+}
+
+.text {
+  --ripple-color: var(--accent-translucent-hover);
+
+  color: var(--accent-text);
+}
+
+.text:hover:not(:disabled),
+.text:focus-visible {
+  background: var(--accent-translucent-hover);
+}
+
+.danger {
+  --ripple-color: var(--danger-hover);
+
+  color: var(--danger);
+}
+
+.danger:hover:not(:disabled),
+.danger:focus-visible {
+  background: var(--danger-hover);
+}
+
+/* Compact, mixed-case pill (e.g. "Начать чат" in the empty chat list). */
+.pill {
+  height: 40px;
+  padding: 0 16px 0 12px;
+  border-radius: 20px;
+  text-transform: none;
+}
+
+.button:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

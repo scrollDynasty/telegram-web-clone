@@ -1,0 +1,280 @@
+/* ───────────── Design tokens ─────────────
+ * Values follow Telegram Web A (src/styles/themes.json, _variables.scss).
+ * Colors are declared once with light-dark(): the active scheme comes from `color-scheme`,
+ * which is driven by <html data-theme> ("system" = no attribute = follow the OS).
+ */
+:root {
+  color-scheme: light dark;
+
+  --font-sans:
+    'Roboto Variable', Roboto, -apple-system, BlinkMacSystemFont, 'Apple Color Emoji', 'Segoe UI',
+    Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+  --font-rounded: ui-rounded, 'SF Pro Rounded', var(--font-sans);
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  /* Roboto is naturally quite bold, so Telegram uses 500 for "semibold". */
+  --font-weight-semibold: 500;
+  --font-weight-bold: 700;
+
+  /* Brand blue stays the same in both themes (logo). */
+  --telegram-blue: #3390ec;
+
+  --accent: light-dark(#3390ec, #8774e1);
+  --accent-hover: light-dark(#4a95d6, #7b71c6);
+  --accent-soft: light-dark(#3390ec1a, #8774e11a);
+  --accent-translucent-hover: light-dark(rgba(51, 144, 236, 0.08), rgba(135, 116, 225, 0.08));
+  /* Accent as text (links, text buttons, raised labels): a shade darker/lighter than the brand
+   * fill so it reaches WCAG AA 4.5:1 on the surface (#3390ec on white is only 3.3:1). */
+  --accent-text: light-dark(#2a78c4, #9887e6);
+  --on-accent: #ffffff;
+
+  --bg: light-dark(#f4f4f5, #0f0f0f);
+  --surface: light-dark(#ffffff, #212121);
+  --surface-hover: light-dark(#f4f4f5, #2c2c2c);
+  --surface-active: light-dark(#ededed, #292929);
+  --surface-menu: light-dark(#ffffffbb, #212121dd);
+  --border: light-dark(#dadce0, #303030);
+  --border-input: light-dark(#dadce0, #5b5b5a);
+  --menu-separator: light-dark(#0000001a, #ffffff1a);
+
+  --text: light-dark(#000000, #ffffff);
+  --text-secondary: light-dark(#707579, #aaaaaa);
+  /* Placeholders only (Telegram's value); anything that carries information uses --text-secondary. */
+  --text-tertiary: light-dark(#a2acb4, #8e9196);
+  --text-meta: light-dark(#686c72, #aaaaaa);
+  --icon-secondary: light-dark(#707579, #aaaaaa);
+  --interactive-hover: light-dark(rgba(112, 117, 121, 0.08), rgba(170, 170, 170, 0.08));
+  --ripple-color: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.08));
+
+  --active: light-dark(#00c73e, #8774e1);
+  --meta-colored: light-dark(#4dcd5e, #8378db);
+  --chat-active: light-dark(#3390ec, #766ac8);
+  --chat-username: light-dark(#3c7eb0, #e9eef4);
+  --danger: #e53935;
+  --danger-soft: rgba(229, 57, 53, 0.1);
+  --danger-hover: rgba(229, 57, 53, 0.08);
+  --warning: #fdd764;
+  --warning-text: #2e3939;
+  --composer-button: light-dark(#000000, #ffffff);
+
+  --bubble-in: light-dark(#ffffff, #212121);
+  --bubble-in-text: var(--text);
+  --bubble-in-meta: light-dark(rgba(104, 108, 114, 0.75), rgba(170, 170, 170, 0.75));
+  --bubble-out: light-dark(#eeffde, #766ac8);
+  --bubble-out-text: light-dark(#000000, #ffffff);
+  --bubble-out-meta: light-dark(#4fae4e, #ffffff88);
+  --bubble-out-status: light-dark(#45af54, #ffffff);
+  --bubble-out-link: light-dark(#3390ec, #ffffff);
+  --default-shadow: light-dark(#72727240, #1010109c);
+
+  /* Wallpaper: Telegram's default 4-point gradients (util/wallpaper.ts). In dark mode the colors
+   * are pre-darkened (×0.5), since they only show through the doodles. */
+  --wallpaper-base: light-dark(#99ba92, #000000);
+  --wallpaper-1: light-dark(#bdcd8c, #282e6a);
+  --wallpaper-2: light-dark(#8eba89, #4b1860);
+  --wallpaper-3: light-dark(#83b28f, #6f365d);
+  --wallpaper-4: light-dark(#c5d3b0, #7f624b);
+  --wallpaper-gradient-base: light-dark(#99ba92, #3f1a55);
+  /* Light: black doodles soft-lit over the gradient. Dark: no overlay (the gradient is masked). */
+  --wallpaper-overlay: light-dark(#000000, transparent);
+  /* Solid mask layer: opaque in light (gradient visible everywhere), clear in dark (doodles only). */
+  --wallpaper-mask-fill: light-dark(#000000, transparent);
+  --pill-bg: light-dark(#4a8e3a8c, #48576166);
+  --pill-text: #ffffff;
+
+  --scrollbar: rgba(90, 90, 90, 0.3);
+  --shadow-island: 0 1px 4px 0 #0000000d;
+  --shadow-pane: 0 1px 5px -1px rgba(0, 0, 0, 0.21);
+  --shadow-footer: 0 1px 8px 1px rgba(0, 0, 0, 0.12);
+  --shadow-menu: 0 4px 8px 2px var(--default-shadow);
+  --shadow-lg: 0 4px 8px 2px var(--default-shadow);
+
+  --radius-sm: 6px;
+  --radius-default: 16px;
+  --radius-bubble: 15px;
+  --radius-bubble-small: 6px;
+  --radius-button: 28px;
+  --radius-modal: 32px;
+  --radius-island: 24px;
+  --radius-full: 999px;
+
+  /* Left column width, as #LeftColumn in Telegram Web A. */
+  --sidebar-width: clamp(256px, 33vw, 424px);
+  --column-header-height: 64px;
+  --middle-header-height: 48px;
+  --panel-inset: 16px;
+  --messages-width: 760px;
+  /* Notch, rounded corners and home indicator (index.html uses viewport-fit=cover). */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration: 180ms;
+
+  /* Motion, from Telegram Web A's _variables.scss. */
+  --layer-transition: 300ms cubic-bezier(0.33, 1, 0.68, 1);
+  --slide-transition: 300ms cubic-bezier(0.25, 1, 0.5, 1);
+  --select-transition: 200ms ease-out;
+  /* Slight overshoot for things that fly in (FABs, the jump-to-bottom button). */
+  --ease-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --layer-blackout-opacity: 0.1;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+@media (min-width: 926px) {
+  :root {
+    --sidebar-width: clamp(256px, 33vw, 40vw);
+  }
+}
+
+@media (min-width: 1276px) {
+  :root {
+    --sidebar-width: clamp(256px, 25vw, 33vw);
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    --panel-inset: 8px;
+  }
+}
+
+/* ───────────── Reset & base ───────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+a {
+  color: var(--accent-text);
+}
+
+/* Fallback focus ring; list rows, icon buttons and inputs draw their own. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+/* Scrollbars stay hidden until the container is hovered or focused, as in Telegram. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover,
+*:focus-within {
+  scrollbar-color: var(--scrollbar) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background-color: transparent;
+}
+
+:hover::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ───────────── Theme switch (see features/theme/switchTheme.ts) ─────────────
+ * The new theme is revealed by a growing circle clipped on the live `new` snapshot; the default
+ * cross-fade is turned off. These are the only view transitions in the app. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  z-index: 1;
+}
+
+/* Same idea as Telegram's `no-animations`: repaint in one frame, no per-element colour fades. */
+:root[data-theme-switching] *,
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  ::backdrop {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

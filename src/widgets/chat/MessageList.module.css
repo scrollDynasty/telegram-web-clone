@@ -1,0 +1,168 @@
+.wrapper {
+  --fade-floor: rgba(0, 0, 0, 0.24);
+  --top-ramp: 24px;
+
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Messages dim to 24% under the floating header and composer (Telegram's MessageList mask).
+ * --top-inset / --bottom-inset come from ChatView. */
+.scroller {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  outline: none;
+  scroll-padding-bottom: var(--bottom-inset, 0px);
+  mask-image: linear-gradient(
+    to bottom,
+    var(--fade-floor) 0,
+    var(--fade-floor) calc(var(--top-inset, 0px) - var(--top-ramp)),
+    color-mix(in srgb, #000 8.6%, var(--fade-floor))
+      calc(var(--top-inset, 0px) - var(--top-ramp) * 0.8),
+    color-mix(in srgb, #000 33.4%, var(--fade-floor))
+      calc(var(--top-inset, 0px) - var(--top-ramp) * 0.6),
+    color-mix(in srgb, #000 66.6%, var(--fade-floor))
+      calc(var(--top-inset, 0px) - var(--top-ramp) * 0.4),
+    color-mix(in srgb, #000 91.4%, var(--fade-floor))
+      calc(var(--top-inset, 0px) - var(--top-ramp) * 0.2),
+    #000 var(--top-inset, 0px),
+    #000 calc(100% - var(--bottom-inset, 0px)),
+    color-mix(in srgb, #000 91.4%, var(--fade-floor)) calc(100% - var(--bottom-inset, 0px) * 0.8),
+    color-mix(in srgb, #000 66.6%, var(--fade-floor)) calc(100% - var(--bottom-inset, 0px) * 0.6),
+    color-mix(in srgb, #000 33.4%, var(--fade-floor)) calc(100% - var(--bottom-inset, 0px) * 0.4),
+    color-mix(in srgb, #000 8.6%, var(--fade-floor)) calc(100% - var(--bottom-inset, 0px) * 0.2),
+    var(--fade-floor) 100%
+  );
+}
+
+/* Reachable from the keyboard (scrolling with arrows): an inner ring, the pane has no margin. */
+.scroller:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: min(100%, var(--messages-width));
+  min-height: 100%;
+  margin: 0 auto;
+  padding: var(--top-inset, 0px) 16px calc(var(--bottom-inset, 0px) + 8px) 18px;
+}
+
+/* One day per section: bounds the sticky range of its date pill (margins do not collapse in
+ * a flex column, as between the bubbles of the column itself). */
+.dayGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Date pills: wallpaper-tinted, sticky right under the header pill. */
+.day {
+  position: sticky;
+  top: calc(var(--top-inset, 0px) + 8px);
+  z-index: 9;
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+  pointer-events: none;
+}
+
+.day span,
+.emptyCard {
+  border-radius: var(--radius-bubble);
+  background: var(--pill-bg);
+  color: var(--pill-text);
+  backdrop-filter: blur(4px);
+}
+
+.day span {
+  padding: 3px 8px;
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: var(--top-inset, 0px) 16px var(--bottom-inset, 0px);
+}
+
+.emptyCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  max-width: min(80%, 260px);
+  padding: 12px 16px 14px;
+  text-align: center;
+}
+
+.emptySticker {
+  margin-bottom: 4px;
+  font-size: 48px;
+  line-height: 1.1;
+}
+
+.emptyCard p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.emptyCard .emptyTitle {
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+}
+
+.wrapper .jump {
+  position: absolute;
+  right: calc((100% - var(--panel-width, calc(100% - 32px))) / 2);
+  bottom: calc(var(--bottom-inset, 0px) + 8px);
+  z-index: 10;
+  width: 48px;
+  height: 48px;
+  background: var(--surface);
+  color: var(--composer-button);
+  box-shadow: 0 1px 2px var(--default-shadow);
+  /* Telegram's FloatingActionButtons: slides up with a slight overshoot. */
+  opacity: 0;
+  transform: translateY(72px);
+  pointer-events: none;
+  transition:
+    transform 250ms var(--ease-back),
+    opacity 200ms ease,
+    background-color 0.15s;
+}
+
+.wrapper .revealed {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+@media (hover: hover) {
+  .wrapper .jump:hover:not(:disabled) {
+    background: var(--surface-hover);
+  }
+}
+
+@media (max-width: 600px) {
+  .day {
+    margin: 8px 0;
+  }
+
+  .column {
+    padding-inline: 8px 10px;
+  }
+
+  .wrapper .jump {
+    width: 46px;
+    height: 46px;
+  }
+}
