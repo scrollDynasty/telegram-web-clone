@@ -45,6 +45,26 @@ export function normalizeApiUrl(apiUrl: string): string {
   return apiUrl.trim().replace(/\/+$/, '')
 }
 
+const SHARED_API_HOST = 'api.green-api.com'
+
+/**
+ * The host the browser must actually talk to. The shared api.green-api.com accepts reads and
+ * sendMessage, but its CORS policy has no DELETE: deleteNotification fails and the notification
+ * queue gets stuck on its first item (nothing is ever received). Sessions saved with that host
+ * (the old default) are transparently redirected to the instance host.
+ */
+export function resolveApiUrl(apiUrl: string, idInstance: string): string {
+  const normalized = normalizeApiUrl(apiUrl)
+  let host = ''
+  try {
+    host = new URL(normalized).hostname
+  } catch {
+    // Invalid or empty: fall through to the instance host.
+  }
+  if (!normalized || host === SHARED_API_HOST) return apiUrlForInstance(idInstance) ?? normalized
+  return normalized
+}
+
 /**
  * Thin typed client over the GREEN-API HTTP API (Telegram instance).
  * Every response is validated with zod, every failure becomes a GreenApiError
@@ -56,7 +76,8 @@ export class GreenApiClient {
   private readonly fetchImpl: typeof fetch
 
   constructor(credentials: GreenApiCredentials, fetchImpl: typeof fetch = fetch) {
-    this.baseUrl = `${normalizeApiUrl(credentials.apiUrl)}/waInstance${credentials.idInstance.trim()}`
+    const apiUrl = resolveApiUrl(credentials.apiUrl, credentials.idInstance)
+    this.baseUrl = `${apiUrl}/waInstance${credentials.idInstance.trim()}`
     this.token = credentials.apiTokenInstance.trim()
     // Bind so `this` is not the client when calling the global fetch.
     this.fetchImpl = fetchImpl.bind(globalThis)

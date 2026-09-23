@@ -1,5 +1,5 @@
 import { GreenApiError } from './errors'
-import { apiUrlForInstance, GreenApiClient } from './greenApi'
+import { apiUrlForInstance, GreenApiClient, resolveApiUrl } from './greenApi'
 
 const credentials = {
   apiUrl: 'https://4100.api.green-api.com/',
@@ -169,5 +169,37 @@ describe('apiUrlForInstance', () => {
 
   it.each(['', '410', 'abc12345'])('returns null for %j', (id) => {
     expect(apiUrlForInstance(id)).toBeNull()
+  })
+})
+
+describe('resolveApiUrl', () => {
+  it('redirects the shared host (no CORS DELETE) and empty values to the instance host', () => {
+    expect(resolveApiUrl('https://api.green-api.com', '4100123456')).toBe(
+      'https://4100.api.green-api.com',
+    )
+    expect(resolveApiUrl('https://api.green-api.com/', '4100123456')).toBe(
+      'https://4100.api.green-api.com',
+    )
+    expect(resolveApiUrl('', '4100123456')).toBe('https://4100.api.green-api.com')
+  })
+
+  it('keeps an explicit instance host', () => {
+    expect(resolveApiUrl('https://7103.api.greenapi.com/', '4100123456')).toBe(
+      'https://7103.api.greenapi.com',
+    )
+  })
+
+  it('a stored session with the old default talks to the instance host', async () => {
+    const fetchMock = mockFetch(200, { idMessage: 'abc' })
+    const client = new GreenApiClient(
+      { apiUrl: 'https://api.green-api.com', idInstance: '4100123456', apiTokenInstance: 't' },
+      fetchMock,
+    )
+    await client.sendMessage('1', 'x')
+    expect(
+      String(fetchMock.mock.calls[0]![0]).startsWith(
+        'https://4100.api.green-api.com/waInstance4100123456/',
+      ),
+    ).toBe(true)
   })
 })
